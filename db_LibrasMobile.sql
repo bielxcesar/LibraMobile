@@ -1,5 +1,5 @@
 CREATE DATABASE LibraMobile;
-USE LibraMobile;
+USE LibraMobile; 
 
 CREATE TABLE usuarios (
     id SERIAL PRIMARY KEY,
@@ -8,7 +8,7 @@ CREATE TABLE usuarios (
     cpf CHAR(11) UNIQUE NOT NULL,
     telefone VARCHAR(15),
     nascimento DATE,
-    password_hash VARCHAR(255) NOT NULL, -- Mantido alto para o Hash
+    password_hash VARCHAR(255) NOT NULL, 
     cargo VARCHAR(15) CHECK (cargo IN ('admin_master','admin','professor','aluno'))
 );
 
@@ -22,13 +22,13 @@ CREATE TABLE professores (
 CREATE TABLE admins (
     id_usuario BIGINT UNSIGNED PRIMARY KEY,
     idadm VARCHAR(7) NOT NULL,
-    setor VARCHAR(12), -- Otimizado para 12 caracteres
+    setor VARCHAR(12), 
     FOREIGN KEY (id_usuario) REFERENCES usuarios(id) ON DELETE CASCADE
 );
 
 CREATE TABLE alunos (
     id_usuario BIGINT UNSIGNED PRIMARY KEY,
-    contato_responsavel VARCHAR(15), -- Otimizado para apenas o número do celular
+    contato_responsavel VARCHAR(15), 
     FOREIGN KEY (id_usuario) REFERENCES usuarios(id) ON DELETE CASCADE
 );
 #Valores para serem inseridos na tabela Tabela principal admSupremo
