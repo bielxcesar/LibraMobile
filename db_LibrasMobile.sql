@@ -1,87 +1,87 @@
 CREATE DATABASE LibraMobile;
-USE LibraMobile; 
+USE LibraMobile;
 
+-- 1. TABELA PRINCIPAL DE USUÁRIOS
 CREATE TABLE usuarios (
-    id SERIAL PRIMARY KEY,
-    nome VARCHAR(50) NOT NULL,
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nome VARCHAR(100) NOT NULL,
     email VARCHAR(100) UNIQUE NOT NULL,
-    cpf CHAR(11) UNIQUE NOT NULL,
+    cpf CHAR(11) UNIQUE NULL, -- Null para Admins que usam CNPJ
     telefone VARCHAR(15),
     nascimento DATE,
-    password_hash VARCHAR(255) NOT NULL, 
-    cargo VARCHAR(15) CHECK (cargo IN ('admin_master','admin','professor','aluno'))
+    password_hash VARCHAR(255) NOT NULL,
+    cargo ENUM('admin_master', 'admin', 'professor', 'aluno') NOT NULL,
+    status ENUM('pendente', 'ativo', 'banido', 'demitido') DEFAULT 'pendente',
+    criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE professores (
-    id_usuario BIGINT UNSIGNED PRIMARY KEY,
-    registro_profissional VARCHAR(20),
-    certificado_prolibras VARCHAR(20),
-    FOREIGN KEY (id_usuario) REFERENCES usuarios(id) ON DELETE CASCADE
-);
-
-CREATE TABLE admins (
-    id_usuario BIGINT UNSIGNED PRIMARY KEY,
-    idadm VARCHAR(7) NOT NULL,
-    setor VARCHAR(12), 
-    FOREIGN KEY (id_usuario) REFERENCES usuarios(id) ON DELETE CASCADE
-);
-
+-- 2. TABELA DE ALUNOS (Herança)
 CREATE TABLE alunos (
-    id_usuario BIGINT UNSIGNED PRIMARY KEY,
-    contato_responsavel VARCHAR(15), 
+    id_usuario INT PRIMARY KEY,
+    contato_responsavel VARCHAR(15),
+    pontos INT DEFAULT 0,
+    nivel_atual INT DEFAULT 1,
+    frequencia INT DEFAULT 0,
+    ultima_presenca DATE,
     FOREIGN KEY (id_usuario) REFERENCES usuarios(id) ON DELETE CASCADE
 );
-#Valores para serem inseridos na tabela Tabela principal admSupremo
-INSERT INTO usuarios (nome, email, cpf, telefone, nascimento, password_hash, cargo)
-VALUES ('Super Admin', 'superadmin@libra.com', '00000000000', '11999999999', '1980-01-01', 'hashseguro123', 'admin_master');
 
-#Admin normal ------------------------------------------------------------------------------------------------------------
--- Primeiro insere na tabela principal
-INSERT INTO usuarios (nome, email, cpf, telefone, nascimento, password_hash, cargo)
-VALUES ('Admin Normal', 'admin@libra.com', '11111111111', '11988888888', '1985-05-05', 'hashseguro456', 'admin');
+-- 3. TABELA DE PROFESSORES (Herança)
+CREATE TABLE professores (
+    id_usuario INT PRIMARY KEY,
+    registro_profissional VARCHAR(50),
+    certificado_prolibras VARCHAR(50),
+    FOREIGN KEY (id_usuario) REFERENCES usuarios(id) ON DELETE CASCADE
+);
 
--- Depois insere os dados extras na tabela admins
-INSERT INTO admins (id_usuario, idadm, setor)
-VALUES (2, 'ADM001', 'Contratos');
+-- 4. TABELA DE ADMINS / INSTITUIÇÕES (Herança)
+CREATE TABLE admins (
+    id_usuario INT PRIMARY KEY,
+    cnpj CHAR(14) UNIQUE NOT NULL,
+    setor VARCHAR(30), -- Aumentado para não travar
+    nome_responsavel VARCHAR(100),
+    telefone_institucional VARCHAR(15),
+    motivo_solicitacao TEXT,
+    chave_seguranca VARCHAR(50) NULL, -- Gerada após aprovação
+    aprovado_por INT NULL,
+    data_aprovacao TIMESTAMP NULL,
+    FOREIGN KEY (id_usuario) REFERENCES usuarios(id) ON DELETE CASCADE,
+    FOREIGN KEY (aprovado_por) REFERENCES usuarios(id) -- ID do Admin Master que aprovou
+);
 
-#Professor ------------------------------------------------------------------------------------------------------------
--- Primeiro insere na tabela principal
-INSERT INTO usuarios (nome, email, cpf, telefone, nascimento, password_hash, cargo)
-VALUES ('Professor João', 'joao.prof@libra.com', '22222222222', '11977777777', '1990-03-10', 'hashseguro789', 'professor');
+-- 5. TABELA DE CHAVES PARA ADMINS (Opcional, mas útil)
+CREATE TABLE chaves_autorizadas (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    chave VARCHAR(50) UNIQUE NOT NULL,
+    usada BOOLEAN DEFAULT FALSE,
+    criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
 
--- Depois insere os dados extras na tabela professores
-INSERT INTO professores (id_usuario, registro_profissional, certificado_prolibras)
-VALUES (3, 'REG12345', 'PROLIBRAS6789');
+UPDATE usuarios 
+SET password_hash = 'COLE_O_RESULTADO_AQUI', cargo = 'admin_master', status = 'ativo' 
+WHERE email = 'gabriel.fernandez.a8@gmail.com';
 
-#Aluno ------------------------------------------------------------------------------------------------------------
--- Primeiro insere na tabela principal
-INSERT INTO usuarios (nome, email, cpf, telefone, nascimento, password_hash, cargo)
-VALUES ('Aluno Pedro', 'pedro.aluno@libra.com', '33333333333', '11966666666', '2005-07-20', 'hashseguro321', 'aluno');
-
--- Depois insere os dados extras na tabela alunos
-INSERT INTO alunos (id_usuario, documento, contato)
-VALUES (4, 'DOC98765', 'Responsável: Maria - 11955555555');
+UPDATE usuarios 
+SET cargo = 'admin_master', status = 'ativo' 
+WHERE email = 'gabriel.fernandez.a8@gmail.com';
 
 #Area para visualizar -----------------------------------------------------------------------------------------------
-select * from usuarios;
+DELETE FROM usuarios WHERE email = 'gabriel.fernandez.a8@gmail.com';
+DELETE FROM usuarios WHERE email = 'murilonovaes32@gmail.com';
 
-#Ver tabela professor
-SELECT 
-    u.id, u.nome, u.email, u.cpf, u.telefone, u.cargo, p.registro_profissional, p.certificado_prolibras
-FROM usuarios u
-INNER JOIN professores p ON u.id = p.id_usuario;
+SELECT id, nome, email, cargo FROM usuarios WHERE email = 'gabriel.fernandez.a8@gmail.com';
 
-#ver tabela Adm
-SELECT 
-    u.id, u.nome, u.cargo, a.idadm, a.setor 
-FROM usuarios u
-INNER JOIN admins a ON u.id = a.id_usuario;
+UPDATE usuarios 
+SET cargo = 'admin_master', status = 'ativo' 
+WHERE email = 'gabriel.fernandez.a8@gmail.com';
 
-SELECT u.id, u.nome, u.email, u.cargo,
-       p.registro_profissional, p.certificado_prolibras
+#ver admin
+SELECT u.id, u.nome, u.email, u.cargo, u.status, a.cnpj
 FROM usuarios u
-LEFT JOIN professores p ON u.id = p.id_usuario
-WHERE u.cargo = 'aluno';
+LEFT JOIN admins a ON u.id = a.id_usuario
+WHERE u.cargo IN ('admin', 'admin_master');
+
+
 
 
 
